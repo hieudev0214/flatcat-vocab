@@ -840,7 +840,7 @@
         '<button class="del-btn" type="button" aria-label="Xóa từ ' + escapeHtml(w.term) + '">' +
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"></path></svg>' +
         '</button>';
-      row.querySelector('.del-btn').addEventListener('click', function () { removeWord(w.id); });
+      row.querySelector('.del-btn').addEventListener('click', function () { removeWord(w.id, w.term); });
       var rowSpeakBtn = row.querySelector('.speak-btn');
       if (rowSpeakBtn) rowSpeakBtn.addEventListener('click', function () { speak(w.term, rowSpeakBtn); });
       listEl.appendChild(row);
@@ -888,7 +888,7 @@
       });
       back.querySelector('.del-btn').addEventListener('click', function (e) {
         e.stopPropagation();
-        removeWord(w.id);
+        removeWord(w.id, w.term);
       });
       var frontSpeakBtn = front.querySelector('.speak-btn');
       if (frontSpeakBtn) frontSpeakBtn.addEventListener('click', function (e) {
@@ -938,7 +938,12 @@
     render();
   }
 
-  function removeWord(id) {
+  function removeWord(id, term) {
+    var ok = window.confirm(
+      term ? 'Xóa từ "' + term + '"? Từ này sẽ mất vĩnh viễn, không hoàn tác được.'
+        : 'Xóa từ này? Không hoàn tác được.'
+    );
+    if (!ok) return;
     allWords = allWords.filter(function (w) { return w.id !== id; });
     saveLocalStorage(allWords);
     render();
