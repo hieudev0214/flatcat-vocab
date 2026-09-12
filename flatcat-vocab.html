@@ -211,6 +211,34 @@
     font-weight: 600;
   }
 
+  /* mobile tab switcher: hidden on desktop, only matters under the 760px breakpoint */
+  .tab-bar {
+    display: none;
+    gap: 6px;
+    background: var(--paper);
+    border: 1.5px solid var(--line);
+    border-radius: 12px;
+    padding: 4px;
+    margin-bottom: 16px;
+  }
+  .tab-btn {
+    flex: 1;
+    border: none;
+    background: transparent;
+    color: var(--ink-soft);
+    font-weight: 600;
+    font-size: 0.92rem;
+    padding: 9px 0;
+    border-radius: 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+  }
+  .tab-btn svg { width: 17px; height: 17px; }
+  .tab-btn.active { background: var(--card); color: var(--ginger); box-shadow: 0 1px 0 var(--shadow); }
+  .tab-btn#tab-list.active { color: var(--moss); }
+
   /* two-panel layout: flashcards left, full list right */
   .columns {
     display: grid;
@@ -219,8 +247,11 @@
     align-items: start;
   }
   @media (max-width: 760px) {
+    .tab-bar { display: flex; }
     .columns { grid-template-columns: 1fr; }
-    #grid, #list { max-height: 56vh; }
+    #grid, #list { max-height: 60vh; }
+    .columns[data-tab="cards"] .panel-list { display: none; }
+    .columns[data-tab="list"] .panel-cards { display: none; }
   }
   .panel-title {
     display: flex;
@@ -485,7 +516,18 @@
     <p id="empty-msg">Chưa có từ nào khớp.</p>
   </div>
 
-  <div class="columns" id="columns">
+  <div class="tab-bar" id="tab-bar" role="tablist">
+    <button type="button" class="tab-btn active" id="tab-cards" role="tab" aria-selected="true" aria-controls="columns">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v8a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8Z"></path><path d="M9 9h.01M15 9h.01M9 14c1 1 5 1 6 0"></path></svg>
+      FlatCat
+    </button>
+    <button type="button" class="tab-btn" id="tab-list" role="tab" aria-selected="false" aria-controls="columns">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h10"></path></svg>
+      Từ vựng
+    </button>
+  </div>
+
+  <div class="columns" id="columns" data-tab="cards">
     <section class="panel panel-cards">
       <h2 class="panel-title">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 8a4 4 0 0 1 4-4h8a4 4 0 0 1 4 4v8a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4V8Z"></path><path d="M9 9h.01M15 9h.01M9 14c1 1 5 1 6 0"></path></svg>
@@ -871,6 +913,18 @@
     query = e.target.value;
     render();
   });
+
+  var tabCards = document.getElementById('tab-cards');
+  var tabList = document.getElementById('tab-list');
+  function setTab(name) {
+    columnsEl.dataset.tab = name;
+    tabCards.classList.toggle('active', name === 'cards');
+    tabList.classList.toggle('active', name === 'list');
+    tabCards.setAttribute('aria-selected', String(name === 'cards'));
+    tabList.setAttribute('aria-selected', String(name === 'list'));
+  }
+  tabCards.addEventListener('click', function () { setTab('cards'); });
+  tabList.addEventListener('click', function () { setTab('list'); });
 
   addToggle.addEventListener('click', function () {
     var open = addPanel.hidden;
