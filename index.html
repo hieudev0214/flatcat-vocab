@@ -151,8 +151,8 @@
   }
   .btn-ghost:hover { border-color: var(--moss); color: var(--moss); }
 
-  /* add panel */
-  #add-panel {
+  /* add panel + trash panel share the same card treatment */
+  #add-panel, #trash-panel {
     background: var(--card);
     border: 1.5px solid var(--line);
     border-radius: 16px;
@@ -160,11 +160,49 @@
     margin-bottom: 22px;
     box-shadow: 0 4px 0 var(--shadow);
   }
-  #add-panel h2 {
+  #add-panel h2, #trash-panel h2 {
     font-size: 1.15rem;
     margin: 0 0 12px;
     color: var(--moss);
   }
+  #trash-list {
+    display: flex;
+    flex-direction: column;
+    max-height: 320px;
+    overflow-y: auto;
+  }
+  .trash-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 9px 2px;
+    border-bottom: 1px solid var(--line);
+  }
+  .trash-row:last-child { border-bottom: none; }
+  .trash-row-term { flex: 0 0 auto; min-width: 90px; }
+  .trash-row-term .term { font-size: 0.95rem; }
+  .trash-row-meaning {
+    flex: 1;
+    font-size: 0.9rem;
+    color: var(--ink-soft);
+    text-decoration: line-through;
+  }
+  .restore-btn {
+    border: none;
+    background: transparent;
+    color: var(--moss);
+    font-weight: 600;
+    font-size: 0.85rem;
+    padding: 6px 10px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    flex-shrink: 0;
+  }
+  .restore-btn:hover { background: var(--paper); }
+  .restore-btn svg { width: 15px; height: 15px; }
+  .trash-empty { color: var(--ink-soft); font-size: 0.9rem; margin: 8px 0; }
   .form-grid {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -491,7 +529,20 @@
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
       Thêm từ vựng
     </button>
+    <button class="btn btn-ghost" id="trash-toggle" aria-expanded="false" aria-controls="trash-panel">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 2.6-6.4L3 8"></path><path d="M3 3v5h5"></path></svg>
+      Lịch sử xóa (<span id="trash-count">0</span>)
+    </button>
   </div>
+
+  <section id="trash-panel" hidden>
+    <h2>Lịch sử xóa</h2>
+    <div id="trash-list"></div>
+    <p id="trash-empty" class="trash-empty" hidden>Chưa xóa từ nào.</p>
+    <div class="form-actions">
+      <button type="button" class="btn btn-ghost" id="clear-trash">Xóa hết lịch sử</button>
+    </div>
+  </section>
 
   <section id="add-panel" hidden>
     <h2>Từ mới</h2>
@@ -591,10 +642,17 @@
   var countEl = document.getElementById('word-count');
   var addPanel = document.getElementById('add-panel');
   var addToggle = document.getElementById('add-toggle');
+  var trashPanel = document.getElementById('trash-panel');
+  var trashToggle = document.getElementById('trash-toggle');
+  var trashListEl = document.getElementById('trash-list');
+  var trashEmptyEl = document.getElementById('trash-empty');
+  var trashCountEl = document.getElementById('trash-count');
 
   var allWords = [];
+  var trash = [];
   var query = '';
   var localSeq = 0;
+  var MAX_TRASH = 200;
 
   var SAMPLE_WORDS = [
     { term: 'adapt', phonetic: "/ə'dæpt/", pos: 'v', meaning: 'thích nghi', example: 'It took me a while to adapt to the new job.' },
@@ -911,25 +969,30 @@
   }
 
   var LOCAL_KEY = 'flatcat-vocab-words-v1';
+  var TRASH_KEY = 'flatcat-vocab-trash-v1';
 
   function genLocalId() {
     return 'local-' + Date.now().toString(36) + '-' + (++localSeq);
   }
 
-  function loadLocalStorage() {
+  function loadJson(key) {
     try {
-      var raw = localStorage.getItem(LOCAL_KEY);
+      var raw = localStorage.getItem(key);
       return raw ? JSON.parse(raw) : null;
     } catch (e) {
       return null;
     }
   }
 
-  function saveLocalStorage(list) {
+  function saveJson(key, list) {
     try {
-      localStorage.setItem(LOCAL_KEY, JSON.stringify(list));
+      localStorage.setItem(key, JSON.stringify(list));
     } catch (e) {}
   }
+
+  function loadLocalStorage() { return loadJson(LOCAL_KEY); }
+  function saveLocalStorage(list) { saveJson(LOCAL_KEY, list); }
+  function saveTrash() { saveJson(TRASH_KEY, trash); }
 
   function addWord(data) {
     data.id = genLocalId();
@@ -940,16 +1003,64 @@
 
   function removeWord(id, term) {
     var ok = window.confirm(
-      term ? 'Xóa từ "' + term + '"? Từ này sẽ mất vĩnh viễn, không hoàn tác được.'
-        : 'Xóa từ này? Không hoàn tác được.'
+      term ? 'Xóa từ "' + term + '"? Bạn có thể khôi phục lại trong "Lịch sử xóa" sau đó.'
+        : 'Xóa từ này? Bạn có thể khôi phục lại trong "Lịch sử xóa" sau đó.'
     );
     if (!ok) return;
+    var removed = allWords.find(function (w) { return w.id === id; });
     allWords = allWords.filter(function (w) { return w.id !== id; });
     saveLocalStorage(allWords);
+    if (removed) {
+      trash.unshift(Object.assign({}, removed, { deletedAt: Date.now() }));
+      if (trash.length > MAX_TRASH) trash.length = MAX_TRASH;
+      saveTrash();
+      renderTrash();
+    }
     render();
   }
 
+  function restoreWord(id) {
+    var idx = trash.findIndex(function (w) { return w.id === id; });
+    if (idx === -1) return;
+    var word = trash.splice(idx, 1)[0];
+    delete word.deletedAt;
+    saveTrash();
+    allWords = allWords.concat([word]);
+    saveLocalStorage(allWords);
+    renderTrash();
+    render();
+  }
+
+  function clearTrash() {
+    if (!trash.length) return;
+    if (!window.confirm('Xóa hết lịch sử xóa? Sẽ không thể khôi phục các từ này nữa.')) return;
+    trash = [];
+    saveTrash();
+    renderTrash();
+  }
+
+  function renderTrash() {
+    trashCountEl.textContent = trash.length;
+    trashListEl.innerHTML = '';
+    trashEmptyEl.hidden = trash.length !== 0;
+    trash.forEach(function (w) {
+      var row = document.createElement('div');
+      row.className = 'trash-row';
+      row.innerHTML =
+        '<div class="trash-row-term"><p class="term">' + escapeHtml(w.term) + '</p></div>' +
+        '<p class="trash-row-meaning">' + escapeHtml(w.meaning) + '</p>' +
+        '<button type="button" class="restore-btn">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 2.6-6.4L3 8"></path><path d="M3 3v5h5"></path></svg>' +
+        'Khôi phục</button>';
+      row.querySelector('.restore-btn').addEventListener('click', function () { restoreWord(w.id); });
+      trashListEl.appendChild(row);
+    });
+  }
+
   function loadOrSeed() {
+    trash = loadJson(TRASH_KEY) || [];
+    renderTrash();
+
     var saved = loadLocalStorage();
     if (saved) {
       setWords(saved);
@@ -990,13 +1101,28 @@
     var open = addPanel.hidden;
     addPanel.hidden = !open;
     addToggle.setAttribute('aria-expanded', String(open));
-    if (open) document.getElementById('f-term').focus();
+    if (open) {
+      trashPanel.hidden = true;
+      trashToggle.setAttribute('aria-expanded', 'false');
+      document.getElementById('f-term').focus();
+    }
   });
   document.getElementById('cancel-add').addEventListener('click', function () {
     addPanel.hidden = true;
     addToggle.setAttribute('aria-expanded', 'false');
     document.getElementById('word-form').reset();
   });
+
+  trashToggle.addEventListener('click', function () {
+    var open = trashPanel.hidden;
+    trashPanel.hidden = !open;
+    trashToggle.setAttribute('aria-expanded', String(open));
+    if (open) {
+      addPanel.hidden = true;
+      addToggle.setAttribute('aria-expanded', 'false');
+    }
+  });
+  document.getElementById('clear-trash').addEventListener('click', clearTrash);
 
   document.getElementById('word-form').addEventListener('submit', function (e) {
     e.preventDefault();
