@@ -502,7 +502,7 @@
 
   <div class="status-row">
     <span><span class="count mono" id="word-count">0</span> từ &middot; lật thẻ để ôn nhanh, hoặc xem trọn bộ nghĩa trong danh sách</span>
-    <span class="badge-offline" id="offline-badge" hidden>Lưu trên trình duyệt này</span>
+    <span class="badge-offline">Lưu trên trình duyệt này</span>
   </div>
 
   <div id="empty-state" hidden>
@@ -544,7 +544,7 @@
     </section>
   </div>
 
-  <footer>Dữ liệu được lưu lại giữa các lần mở trang này.</footer>
+  <footer>Dữ liệu được lưu ngay trên trình duyệt này, không cần máy chủ nào cả.</footer>
 </div>
 
 <script>
@@ -555,14 +555,11 @@
   var emptyEl = document.getElementById('empty-state');
   var emptyMsg = document.getElementById('empty-msg');
   var countEl = document.getElementById('word-count');
-  var offlineBadge = document.getElementById('offline-badge');
   var addPanel = document.getElementById('add-panel');
   var addToggle = document.getElementById('add-toggle');
 
   var allWords = [];
   var query = '';
-  var wordsCol = null;
-  var localMode = false;
   var localSeq = 0;
 
   var SAMPLE_WORDS = [
@@ -830,78 +827,31 @@
   }
 
   function addWord(data) {
-    if (localMode) {
-      data.id = genLocalId();
-      allWords = allWords.concat([data]);
-      saveLocalStorage(allWords);
-      render();
-      return;
-    }
-    wordsCol.add(data).catch(function () {});
+    data.id = genLocalId();
+    allWords = allWords.concat([data]);
+    saveLocalStorage(allWords);
+    render();
   }
 
   function removeWord(id) {
-    if (localMode) {
-      allWords = allWords.filter(function (w) { return w.id !== id; });
-      saveLocalStorage(allWords);
-      render();
+    allWords = allWords.filter(function (w) { return w.id !== id; });
+    saveLocalStorage(allWords);
+    render();
+  }
+
+  function loadOrSeed() {
+    var saved = loadLocalStorage();
+    if (saved) {
+      setWords(saved);
       return;
     }
-    wordsCol.doc(id).delete().catch(function () {});
-  }
-
-  function seedIfEmpty() {
-    if (localMode) {
-      var saved = loadLocalStorage();
-      if (saved) {
-        setWords(saved);
-        return;
-      }
-      var seeded = SAMPLE_WORDS.map(function (w) {
-        w = Object.assign({}, w);
-        w.id = genLocalId();
-        return w;
-      });
-      saveLocalStorage(seeded);
-      setWords(seeded);
-      return;
-    }
-    wordsCol.get().then(function (snap) {
-      if (snap.empty) {
-        SAMPLE_WORDS.forEach(function (w) { wordsCol.add(w).catch(function () {}); });
-      }
-    }).catch(function () {});
-  }
-
-  function startLocalMode() {
-    localMode = true;
-    offlineBadge.hidden = false;
-    seedIfEmpty();
-  }
-
-  function initDb() {
-    if (!window.claude || !window.claude.use) { startLocalMode(); return; }
-    window.claude.use('db').then(function (db) {
-      if (!db) { startLocalMode(); return; }
-      wordsCol = db.collection('words');
-      wordsCol.onSnapshot(function (snap) {
-        var list = snap.docs.map(function (d) {
-          var data = d.data() || {};
-          return {
-            id: d.id,
-            term: data.term || '',
-            phonetic: data.phonetic || '',
-            pos: data.pos || '',
-            synonym: data.synonym || '',
-            meaning: data.meaning || '',
-            example: data.example || ''
-          };
-        });
-        list.sort(function (a, b) { return a.term.localeCompare(b.term); });
-        setWords(list);
-      }, function () { startLocalMode(); });
-      seedIfEmpty();
-    }).catch(function () { startLocalMode(); });
+    var seeded = SAMPLE_WORDS.map(function (w) {
+      w = Object.assign({}, w);
+      w.id = genLocalId();
+      return w;
+    });
+    saveLocalStorage(seeded);
+    setWords(seeded);
   }
 
   document.getElementById('search-form').addEventListener('submit', function (e) {
@@ -957,6 +907,6 @@
     addToggle.setAttribute('aria-expanded', 'false');
   });
 
-  initDb();
+  loadOrSeed();
 })();
 </script>
