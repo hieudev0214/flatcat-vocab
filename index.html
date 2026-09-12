@@ -407,6 +407,33 @@
   .del-btn:hover { opacity: 1; color: #ffb4b4; }
   .del-btn svg { width: 16px; height: 16px; display: block; }
 
+  .speak-btn {
+    border: none;
+    background: transparent;
+    color: var(--ginger);
+    flex-shrink: 0;
+    padding: 2px;
+    display: inline-flex;
+    align-items: center;
+  }
+  .speak-btn:hover { color: var(--moss); }
+  .speak-btn svg { width: 17px; height: 17px; display: block; }
+  .face-back .speak-btn { color: var(--plum-ink); opacity: 0.85; }
+  .face-back .speak-btn:hover { opacity: 1; }
+  .term-row { display: flex; align-items: center; gap: 6px; }
+  .example-row { display: flex; align-items: flex-start; gap: 6px; }
+  .example-row .example { flex: 1; margin-top: 0; }
+  .example-row .speak-btn { margin-top: 8px; }
+  .word-row-term .term-row { gap: 4px; }
+  .speak-btn.speaking { color: var(--moss); animation: speak-pulse 0.9s ease-in-out infinite; }
+  @media (prefers-reduced-motion: reduce) {
+    .speak-btn.speaking { animation: none; }
+  }
+  @keyframes speak-pulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .flip { transition: none; }
   }
@@ -715,6 +742,28 @@
     { term: 'transfer', phonetic: "/træns'fɜːr/", pos: 'v', meaning: 'dời, chuyển', example: 'He has been transferred to a hospital.' }
   ];
 
+  var SPEECH_OK = ('speechSynthesis' in window);
+  var SPEAK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5Z"></path><path d="M15.5 8.5a5 5 0 0 1 0 7"></path><path d="M18.5 6a9 9 0 0 1 0 12"></path></svg>';
+
+  function speakBtnHtml(label) {
+    return '<button class="speak-btn" type="button" aria-label="Phát âm ' + escapeHtml(label) + '">' + SPEAK_ICON + '</button>';
+  }
+
+  function speak(text, btn) {
+    if (!SPEECH_OK || !text) return;
+    document.querySelectorAll('.speak-btn.speaking').forEach(function (b) { b.classList.remove('speaking'); });
+    window.speechSynthesis.cancel();
+    var utter = new SpeechSynthesisUtterance(text);
+    utter.lang = 'en-US';
+    utter.rate = 0.92;
+    if (btn) {
+      btn.classList.add('speaking');
+      utter.onend = function () { btn.classList.remove('speaking'); };
+      utter.onerror = function () { btn.classList.remove('speaking'); };
+    }
+    window.speechSynthesis.speak(utter);
+  }
+
   function escapeHtml(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
@@ -750,7 +799,8 @@
       var row = document.createElement('div');
       row.className = 'word-row';
       row.innerHTML =
-        '<div class="word-row-term"><p class="term">' + escapeHtml(w.term) + '</p>' +
+        '<div class="word-row-term"><div class="term-row"><p class="term">' + escapeHtml(w.term) + '</p>' +
+        (SPEECH_OK ? speakBtnHtml(w.term) : '') + '</div>' +
         (w.phonetic ? '<p class="phonetic mono">' + escapeHtml(w.phonetic) + '</p>' : '') +
         (w.pos ? '<span class="pos-tag">' + escapeHtml(w.pos) + '</span>' : '') + '</div>' +
         '<p class="word-row-meaning">' + escapeHtml(w.meaning) +
@@ -759,6 +809,8 @@
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"></path></svg>' +
         '</button>';
       row.querySelector('.del-btn').addEventListener('click', function () { removeWord(w.id); });
+      var rowSpeakBtn = row.querySelector('.speak-btn');
+      if (rowSpeakBtn) rowSpeakBtn.addEventListener('click', function () { speak(w.term, rowSpeakBtn); });
       listEl.appendChild(row);
     });
 
@@ -772,7 +824,8 @@
       var front = document.createElement('div');
       front.className = 'face face-front';
       front.innerHTML =
-        '<div class="card-top"><p class="term">' + escapeHtml(w.term) + '</p>' +
+        '<div class="card-top"><div class="term-row"><p class="term">' + escapeHtml(w.term) + '</p>' +
+        (SPEECH_OK ? speakBtnHtml(w.term) : '') + '</div>' +
         (w.pos ? '<span class="pos-tag">' + escapeHtml(w.pos) + '</span>' : '') + '</div>' +
         (w.phonetic ? '<p class="phonetic mono">' + escapeHtml(w.phonetic) + '</p>' : '') +
         '<p class="hint">Chạm để xem nghĩa</p>';
@@ -785,7 +838,7 @@
         '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"></path></svg>' +
         '</button></div>' +
         (w.synonym ? '<p class="synonym">&asymp; ' + escapeHtml(w.synonym) + '</p>' : '') +
-        (w.example ? '<p class="example">"' + escapeHtml(w.example) + '"</p>' : '') +
+        (w.example ? '<div class="example-row"><p class="example">"' + escapeHtml(w.example) + '"</p>' + (SPEECH_OK ? speakBtnHtml(w.example) : '') + '</div>' : '') +
         '<p class="hint">Chạm để lật lại</p>';
 
       flip.appendChild(front);
@@ -793,14 +846,27 @@
       slot.appendChild(flip);
 
       function toggle() { slot.classList.toggle('flipped'); }
-      front.addEventListener('click', toggle);
+      front.addEventListener('click', function (e) {
+        if (e.target.closest('.speak-btn')) return;
+        toggle();
+      });
       back.addEventListener('click', function (e) {
-        if (e.target.closest('.del-btn')) return;
+        if (e.target.closest('.del-btn') || e.target.closest('.speak-btn')) return;
         toggle();
       });
       back.querySelector('.del-btn').addEventListener('click', function (e) {
         e.stopPropagation();
         removeWord(w.id);
+      });
+      var frontSpeakBtn = front.querySelector('.speak-btn');
+      if (frontSpeakBtn) frontSpeakBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        speak(w.term, frontSpeakBtn);
+      });
+      var backSpeakBtn = back.querySelector('.speak-btn');
+      if (backSpeakBtn) backSpeakBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        speak(w.example, backSpeakBtn);
       });
 
       gridEl.appendChild(slot);
