@@ -25,6 +25,16 @@ There is no build, lint, or test tooling in this repo — it's a single static H
 - Deleting a word asks for confirmation (`window.confirm`), then moves the entry into the trash array (with a `deletedAt` timestamp) instead of discarding it; the trash panel (`renderTrash()`) supports per-item restore (`restoreWord`) and clearing all history (`clearTrash`).
 - All UI copy is Vietnamese — preserve that in any new UI text.
 
+## PHP + MySQL variant (`php/`)
+
+A second, independent variant lives in `php/`: same UI and logic as the static site, but persisted to MySQL instead of `localStorage`, for hosts that support PHP (currently deployed on InfinityFree). This is a deliberate fork, not a replacement — the GitHub Pages site described above stays static and must not be changed to depend on it.
+
+- `index.php` is `flatcat-vocab.html` with the `SAMPLE_WORDS` seed array and the `localStorage` read/write functions replaced by `fetch()` calls (`apiGet`/`apiPost`) against `api.php`; all rendering/flip-card/TTS/tab-switcher code is unchanged.
+- `api.php` is a single endpoint dispatching on `?action=` (`words`, `trash`, `add`, `delete`, `restore`, `clear_trash`), using PDO with prepared statements.
+- `config.php` defines `DB_HOST`/`DB_NAME`/`DB_USER`/`DB_PASS` and `get_pdo()`, which runs `CREATE TABLE IF NOT EXISTS` for `words` and `trash` on every request and seeds `words` from `data/seed-words.json` (143 entries) only when the table is empty. **The version committed to git has placeholder credentials only** — real credentials are filled in locally and uploaded via FTP straight to the host; never commit or push the real values.
+- No build step. To test locally: point `config.php` at a local MySQL database and run `php -S localhost:8000` from `php/`. See `php/README.md` for the full InfinityFree deployment walkthrough (create hosting account, create MySQL DB in vPanel, fill `config.php`, FTP-upload everything in `php/` into `htdocs/`).
+
 ## Deployment notes
 
 - Repo remote: `https://github.com/hieudev0214/flatcat-vocab.git`, pushed to `main`; GitHub Pages serves directly from the repo root, so the file **must** be a complete HTML document (`<!DOCTYPE html>`, `<head>` with a `viewport` meta tag, etc.) — a bare Artifact-style fragment without a viewport meta tag will break mobile layout (GitHub Pages doesn't inject one).
+- InfinityFree's free subdomains sit behind a JS anti-bot challenge on first load — plain HTTP tools (`curl` without a browser user agent, health checks) will see a challenge page instead of the app; only a real browser can pass it.

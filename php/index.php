@@ -18,6 +18,8 @@
     --moss-ink: #ffffff;
     --plum: #5f4270;
     --plum-ink: #f4eef8;
+    --danger: #c1442e;
+    --danger-ink: #ffffff;
     --shadow: rgba(30, 42, 40, 0.10);
   }
   @media (prefers-color-scheme: dark) {
@@ -33,6 +35,8 @@
       --moss-ink: #0d1f16;
       --plum: #9c7bb2;
       --plum-ink: #1c1424;
+      --danger: #e2685a;
+      --danger-ink: #2a0f0b;
       --shadow: rgba(0, 0, 0, 0.35);
     }
   }
@@ -48,6 +52,8 @@
     --moss-ink: #0d1f16;
     --plum: #9c7bb2;
     --plum-ink: #1c1424;
+    --danger: #e2685a;
+    --danger-ink: #2a0f0b;
     --shadow: rgba(0, 0, 0, 0.35);
   }
 
@@ -151,8 +157,8 @@
   }
   .btn-ghost:hover { border-color: var(--moss); color: var(--moss); }
 
-  /* add panel + trash panel share the same card treatment */
-  #add-panel, #trash-panel {
+  /* add panel + trash panel + game panel share the same card treatment */
+  #add-panel, #trash-panel, #game-panel {
     background: var(--card);
     border: 1.5px solid var(--line);
     border-radius: 16px;
@@ -160,11 +166,50 @@
     margin-bottom: 22px;
     box-shadow: 0 4px 0 var(--shadow);
   }
-  #add-panel h2, #trash-panel h2 {
+  #add-panel h2, #trash-panel h2, #game-panel h2 {
     font-size: 1.15rem;
     margin: 0 0 12px;
     color: var(--moss);
   }
+
+  /* mini game */
+  .game-status-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.9rem;
+    color: var(--ink-soft);
+    margin-bottom: 14px;
+  }
+  .game-status-row .game-score { color: var(--moss); font-weight: 600; }
+  .game-question { margin-bottom: 16px; }
+  .game-term-row { display: flex; align-items: center; gap: 8px; }
+  .game-term-row .term { font-size: 1.5rem; }
+  .game-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  @media (max-width: 520px) {
+    .game-options { grid-template-columns: 1fr; }
+  }
+  .option-btn {
+    text-align: left;
+    border: 1.5px solid var(--line);
+    background: var(--paper);
+    color: var(--ink);
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
+  .option-btn:hover:not(:disabled) { border-color: var(--moss); }
+  .option-btn:disabled { cursor: default; }
+  .option-btn.correct { border-color: var(--moss); background: var(--moss); color: var(--moss-ink); }
+  .option-btn.wrong { border-color: var(--danger); background: var(--danger); color: var(--danger-ink); }
+  .game-footer { margin-top: 16px; }
+  .game-footer p { margin: 0 0 10px; font-weight: 600; }
+  #game-result p { font-size: 1.05rem; font-weight: 600; margin: 0 0 14px; }
+  #game-empty p { color: var(--ink-soft); margin: 0; }
   #trash-list {
     display: flex;
     flex-direction: column;
@@ -533,7 +578,42 @@
       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 2.6-6.4L3 8"></path><path d="M3 3v5h5"></path></svg>
       Lịch sử xóa (<span id="trash-count">0</span>)
     </button>
+    <button class="btn btn-ghost" id="game-toggle" aria-expanded="false" aria-controls="game-panel">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="4"></rect><circle cx="8.5" cy="8.5" r="1.4" fill="currentColor" stroke="none"></circle><circle cx="15.5" cy="15.5" r="1.4" fill="currentColor" stroke="none"></circle><circle cx="15.5" cy="8.5" r="1.4" fill="currentColor" stroke="none"></circle><circle cx="8.5" cy="15.5" r="1.4" fill="currentColor" stroke="none"></circle></svg>
+      Mini game
+    </button>
   </div>
+
+  <section id="game-panel" hidden>
+    <h2>Mini game &middot; Đoán nghĩa từ vựng</h2>
+    <div id="game-empty" hidden>
+      <p>Cần ít nhất 4 từ vựng trong danh sách để chơi mini game.</p>
+    </div>
+    <div id="game-body">
+      <div class="game-status-row">
+        <span id="game-progress">Câu 1/10</span>
+        <span class="game-score" id="game-score">Điểm: 0</span>
+      </div>
+      <div class="game-question">
+        <div class="game-term-row">
+          <p class="term" id="game-term"></p>
+          <button class="speak-btn" type="button" id="game-speak" aria-label="Phát âm từ này">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5Z"></path><path d="M15.5 8.5a5 5 0 0 1 0 7"></path><path d="M18.5 6a9 9 0 0 1 0 12"></path></svg>
+          </button>
+        </div>
+        <p class="phonetic mono" id="game-phonetic"></p>
+      </div>
+      <div class="game-options" id="game-options"></div>
+      <div class="game-footer" id="game-footer" hidden>
+        <p id="game-feedback"></p>
+        <button class="btn btn-primary" type="button" id="game-next">Câu tiếp theo</button>
+      </div>
+    </div>
+    <div id="game-result" hidden>
+      <p id="game-result-text"></p>
+      <button class="btn btn-primary" type="button" id="game-restart">Chơi lại</button>
+    </div>
+  </section>
 
   <section id="trash-panel" hidden>
     <h2>Lịch sử xóa</h2>
@@ -647,10 +727,31 @@
   var trashListEl = document.getElementById('trash-list');
   var trashEmptyEl = document.getElementById('trash-empty');
   var trashCountEl = document.getElementById('trash-count');
+  var gamePanel = document.getElementById('game-panel');
+  var gameToggle = document.getElementById('game-toggle');
+  var gameEmptyEl = document.getElementById('game-empty');
+  var gameBodyEl = document.getElementById('game-body');
+  var gameResultEl = document.getElementById('game-result');
+  var gameProgressEl = document.getElementById('game-progress');
+  var gameScoreEl = document.getElementById('game-score');
+  var gameTermEl = document.getElementById('game-term');
+  var gamePhoneticEl = document.getElementById('game-phonetic');
+  var gameSpeakBtn = document.getElementById('game-speak');
+  var gameOptionsEl = document.getElementById('game-options');
+  var gameFooterEl = document.getElementById('game-footer');
+  var gameFeedbackEl = document.getElementById('game-feedback');
+  var gameNextBtn = document.getElementById('game-next');
+  var gameResultText = document.getElementById('game-result-text');
+  var gameRestartBtn = document.getElementById('game-restart');
 
   var allWords = [];
   var trash = [];
   var query = '';
+  var GAME_QUESTIONS = 10;
+  var gameQueue = [];
+  var gameIndex = 0;
+  var gameScore = 0;
+  var gameAnswered = false;
 
   var SPEECH_OK = ('speechSynthesis' in window);
   var SPEAK_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4V5Z"></path><path d="M15.5 8.5a5 5 0 0 1 0 7"></path><path d="M18.5 6a9 9 0 0 1 0 12"></path></svg>';
@@ -890,6 +991,108 @@
     });
   }
 
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
+    }
+    return a;
+  }
+
+  function pickDistractors(word, count) {
+    var candidates = shuffle(allWords.filter(function (w) { return w.id !== word.id; }));
+    var picked = [];
+    var seenMeanings = {};
+    seenMeanings[word.meaning] = true;
+    candidates.forEach(function (w) {
+      if (picked.length >= count || seenMeanings[w.meaning]) return;
+      seenMeanings[w.meaning] = true;
+      picked.push(w);
+    });
+    if (picked.length < count) {
+      candidates.forEach(function (w) {
+        if (picked.length >= count || picked.indexOf(w) !== -1) return;
+        picked.push(w);
+      });
+    }
+    return picked.slice(0, count);
+  }
+
+  function startGame() {
+    if (allWords.length < 4) {
+      gameEmptyEl.hidden = false;
+      gameBodyEl.hidden = true;
+      gameResultEl.hidden = true;
+      return;
+    }
+    gameEmptyEl.hidden = true;
+    gameResultEl.hidden = true;
+    gameBodyEl.hidden = false;
+    gameQueue = shuffle(allWords).slice(0, Math.min(GAME_QUESTIONS, allWords.length));
+    gameIndex = 0;
+    gameScore = 0;
+    renderGameQuestion();
+  }
+
+  function renderGameQuestion() {
+    gameAnswered = false;
+    var word = gameQueue[gameIndex];
+    gameProgressEl.textContent = 'Câu ' + (gameIndex + 1) + '/' + gameQueue.length;
+    gameScoreEl.textContent = 'Điểm: ' + gameScore;
+    gameTermEl.textContent = word.term;
+    gamePhoneticEl.textContent = word.phonetic || '';
+    gamePhoneticEl.hidden = !word.phonetic;
+    gameFooterEl.hidden = true;
+    gameFeedbackEl.textContent = '';
+
+    var options = shuffle([word].concat(pickDistractors(word, 3)));
+    var optionButtons = [];
+    gameOptionsEl.innerHTML = '';
+    options.forEach(function (opt) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'option-btn';
+      btn.textContent = opt.meaning;
+      btn.addEventListener('click', function () { handleGameAnswer(opt, word, btn, optionButtons); });
+      gameOptionsEl.appendChild(btn);
+      optionButtons.push({ opt: opt, btn: btn });
+    });
+  }
+
+  function handleGameAnswer(chosen, correctWord, btnEl, optionButtons) {
+    if (gameAnswered) return;
+    gameAnswered = true;
+    var isCorrect = chosen.id === correctWord.id;
+    if (isCorrect) gameScore++;
+    gameScoreEl.textContent = 'Điểm: ' + gameScore;
+    optionButtons.forEach(function (o) {
+      o.btn.disabled = true;
+      if (o.opt.id === correctWord.id) o.btn.classList.add('correct');
+      else if (o.btn === btnEl) o.btn.classList.add('wrong');
+    });
+    gameFeedbackEl.textContent = isCorrect ? 'Chính xác!' : 'Chưa đúng — nghĩa đúng là: ' + correctWord.meaning;
+    gameNextBtn.textContent = (gameIndex + 1 < gameQueue.length) ? 'Câu tiếp theo' : 'Xem kết quả';
+    gameFooterEl.hidden = false;
+  }
+
+  function finishGame() {
+    gameBodyEl.hidden = true;
+    gameResultEl.hidden = false;
+    gameResultText.textContent = 'Bạn trả lời đúng ' + gameScore + '/' + gameQueue.length + ' câu.';
+  }
+
+  gameNextBtn.addEventListener('click', function () {
+    gameIndex++;
+    if (gameIndex >= gameQueue.length) {
+      finishGame();
+    } else {
+      renderGameQuestion();
+    }
+  });
+  gameRestartBtn.addEventListener('click', startGame);
+  gameSpeakBtn.addEventListener('click', function () { speak(gameTermEl.textContent, gameSpeakBtn); });
+
   function loadFromServer() {
     Promise.all([apiGet('words'), apiGet('trash')]).then(function (results) {
       setWords(results[0]);
@@ -920,15 +1123,26 @@
   tabCards.addEventListener('click', function () { setTab('cards'); });
   tabList.addEventListener('click', function () { setTab('list'); });
 
-  addToggle.addEventListener('click', function () {
-    var open = addPanel.hidden;
-    addPanel.hidden = !open;
-    addToggle.setAttribute('aria-expanded', String(open));
-    if (open) {
-      trashPanel.hidden = true;
-      trashToggle.setAttribute('aria-expanded', 'false');
-      document.getElementById('f-term').focus();
+  var panels = [
+    { el: addPanel, toggle: addToggle },
+    { el: trashPanel, toggle: trashToggle },
+    { el: gamePanel, toggle: gameToggle }
+  ];
+  function togglePanel(target) {
+    var opening = target.el.hidden;
+    panels.forEach(function (p) {
+      p.el.hidden = true;
+      p.toggle.setAttribute('aria-expanded', 'false');
+    });
+    if (opening) {
+      target.el.hidden = false;
+      target.toggle.setAttribute('aria-expanded', 'true');
     }
+    return opening;
+  }
+
+  addToggle.addEventListener('click', function () {
+    if (togglePanel(panels[0])) document.getElementById('f-term').focus();
   });
   document.getElementById('cancel-add').addEventListener('click', function () {
     addPanel.hidden = true;
@@ -936,16 +1150,12 @@
     document.getElementById('word-form').reset();
   });
 
-  trashToggle.addEventListener('click', function () {
-    var open = trashPanel.hidden;
-    trashPanel.hidden = !open;
-    trashToggle.setAttribute('aria-expanded', String(open));
-    if (open) {
-      addPanel.hidden = true;
-      addToggle.setAttribute('aria-expanded', 'false');
-    }
-  });
+  trashToggle.addEventListener('click', function () { togglePanel(panels[1]); });
   document.getElementById('clear-trash').addEventListener('click', clearTrash);
+
+  gameToggle.addEventListener('click', function () {
+    if (togglePanel(panels[2])) startGame();
+  });
 
   document.getElementById('word-form').addEventListener('submit', function (e) {
     e.preventDefault();
