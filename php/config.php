@@ -40,25 +40,5 @@ function get_pdo() {
         deleted_at DATETIME DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
 
-    // Lần đầu chạy (bảng words rỗng): nạp sẵn 143 từ vựng mẫu từ data/seed-words.json
-    $count = (int) $pdo->query('SELECT COUNT(*) FROM words')->fetchColumn();
-    if ($count === 0) {
-        $seedPath = __DIR__ . '/data/seed-words.json';
-        if (is_file($seedPath)) {
-            $seed = json_decode(file_get_contents($seedPath), true) ?: [];
-            $stmt = $pdo->prepare('INSERT INTO words (term, phonetic, pos, synonym, meaning, example) VALUES (:term, :phonetic, :pos, :synonym, :meaning, :example)');
-            foreach ($seed as $w) {
-                $stmt->execute([
-                    ':term' => $w['term'] ?? '',
-                    ':phonetic' => $w['phonetic'] ?? '',
-                    ':pos' => $w['pos'] ?? 'v',
-                    ':synonym' => $w['synonym'] ?? '',
-                    ':meaning' => $w['meaning'] ?? '',
-                    ':example' => $w['example'] ?? '',
-                ]);
-            }
-        }
-    }
-
     return $pdo;
 }

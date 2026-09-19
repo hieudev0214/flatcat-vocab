@@ -29,9 +29,9 @@ There is no build, lint, or test tooling in this repo — it's a single static H
 
 A second, independent variant lives in `php/`: same UI and logic as the static site, but persisted to MySQL instead of `localStorage`, for hosts that support PHP (currently deployed on InfinityFree). This is a deliberate fork, not a replacement — the GitHub Pages site described above stays static and must not be changed to depend on it.
 
-- `index.php` is `flatcat-vocab.html` with the `SAMPLE_WORDS` seed array and the `localStorage` read/write functions replaced by `fetch()` calls (`apiGet`/`apiPost`) against `api.php`; all rendering/flip-card/TTS/tab-switcher code is unchanged.
+- `index.php` is `flatcat-vocab.html` without the `SAMPLE_WORDS` seed array and with the `localStorage` read/write functions replaced by `fetch()` calls (`apiGet`/`apiPost`) against `api.php`; all rendering/flip-card/TTS/tab-switcher code is unchanged.
 - `api.php` is a single endpoint dispatching on `?action=` (`words`, `trash`, `add`, `delete`, `restore`, `clear_trash`), using PDO with prepared statements.
-- `config.php` defines `DB_HOST`/`DB_NAME`/`DB_USER`/`DB_PASS` and `get_pdo()`, which runs `CREATE TABLE IF NOT EXISTS` for `words` and `trash` on every request and seeds `words` from `data/seed-words.json` (143 entries) only when the table is empty. **The version committed to git has placeholder credentials only** — real credentials are filled in locally and uploaded via FTP straight to the host; never commit or push the real values.
+- `config.php` defines `DB_HOST`/`DB_NAME`/`DB_USER`/`DB_PASS` and `get_pdo()`, which runs `CREATE TABLE IF NOT EXISTS` for `words` and `trash` on every request. The tables start empty — there is no seed data in the PHP variant (words are added through the UI). **The version committed to git has placeholder credentials only** — real credentials are filled in locally and uploaded via FTP straight to the host; never commit or push the real values.
 - No build step. To test locally: point `config.php` at a local MySQL database and run `php -S localhost:8000` from `php/`. See `php/README.md` for the full InfinityFree deployment walkthrough (create hosting account, create MySQL DB in vPanel, fill `config.php`, FTP-upload everything in `php/` into `htdocs/`).
 
 ## Deployment notes

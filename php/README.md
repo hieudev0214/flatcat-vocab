@@ -1,11 +1,10 @@
 # FlatCat Vocab — bản PHP + MySQL
 
-Bản này lưu từ vựng trong cơ sở dữ liệu MySQL thật trên máy chủ (không dùng `localStorage` của trình duyệt nữa). Gồm 3 file chính:
+Bản này lưu từ vựng trong cơ sở dữ liệu MySQL thật trên máy chủ (không dùng `localStorage` của trình duyệt nữa). Gồm 3 file chính (DB ban đầu để trống, tự thêm từ trên web):
 
 - `index.php` — giao diện (giống hệt bản GitHub Pages, chỉ đổi phần lấy/lưu dữ liệu)
 - `api.php` — API xử lý thêm/xóa/khôi phục từ, giao tiếp với MySQL
 - `config.php` — nơi khai báo thông tin kết nối MySQL
-- `data/seed-words.json` — 143 từ vựng mẫu, tự động nạp vào DB lần chạy đầu tiên (khi bảng `words` đang rỗng)
 
 Lưu ý: GitHub Pages **không** chạy được PHP, nên bản này cần một hosting hỗ trợ PHP + MySQL — dưới đây là hướng dẫn deploy lên **InfinityFree** (miễn phí, không cần thẻ tín dụng).
 
@@ -23,7 +22,7 @@ Lưu ý: GitHub Pages **không** chạy được PHP, nên bản này cần mộ
    - Lấy thông tin FTP trong vPanel (mục **FTP Accounts**): host, username, password.
    - Dùng phần mềm FTP (vd. FileZilla) kết nối vào, vào thư mục `htdocs`.
    - Upload toàn bộ nội dung thư mục `php/` (đã sửa `config.php`) vào thẳng trong `htdocs` — tức là `index.php`, `api.php`, `config.php`, và thư mục `data/` phải nằm ngay trong `htdocs`.
-6. **Truy cập trang**: mở `http://<tên-miền-của-bạn>/index.php` (hoặc `http://<tên-miền-của-bạn>/` nếu host tự nhận `index.php` là trang chủ). Lần đầu tải trang, hệ thống sẽ tự tạo 2 bảng (`words`, `trash`) và nạp sẵn 143 từ vựng mẫu.
+6. **Truy cập trang**: mở `http://<tên-miền-của-bạn>/index.php` (hoặc `http://<tên-miền-của-bạn>/` nếu host tự nhận `index.php` là trang chủ). Lần đầu tải trang, hệ thống sẽ tự tạo 2 bảng (`words`, `trash`), ban đầu để trống.
 
 ## Test thử ở máy local trước khi upload (tuỳ chọn)
 
